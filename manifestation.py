@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 import mysql.connector
 
 app = Flask(__name__)
@@ -23,7 +23,9 @@ def api_all():
     mycursor = mydb.cursor()
     mycursor.execute("SELECT * FROM newsletter")
     myresult = mycursor.fetchall()
-    return jsonify(myresult)
+    response = jsonify(myresult)
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 @app.route('/newsletter/<int:id>', methods=['GET'])
 def api_id(id):
@@ -32,24 +34,34 @@ def api_id(id):
     myresult = mycursor.fetchall()
     return jsonify(myresult)
 
-@app.route('/newsletter', methods=['POST'])
+@app.route('/newsletter', methods=['POST','OPTIONS'])
 def api_add():
-    json = request.json
-    email = json['email']
-    name = json['name']
-    listname = json['listname']
-
-    if name and email:
-        sql = "INSERT INTO newsletter (name, email, listname) VALUES (%s, %s, %s)"
-        val = (name, email, listname)
-        mycursor = mydb.cursor()
-        mycursor.execute(sql, val)
-        mydb.commit()
-        respone = jsonify('User added to newsletter successfully!')
-        respone.status_code = 200
-        return respone
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "*")
+        response.headers.add('Access-Control-Allow-Methods', "*")
+        return response
     else:
-        return not_found()
+        json = request.json
+        email = json['email']
+        name = "myname"#json['name']
+        listname = "mylist"#json['listname']
+
+        if name and email:
+            sql = "INSERT INTO newsletter (name, email, listname) VALUES (%s, %s, %s)"
+            val = (name, email, listname)
+            mycursor = mydb.cursor()
+            mycursor.execute(sql, val)
+            mydb.commit()
+            response = jsonify('User added to newsletter successfully!')
+            response.status_code = 200
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            response.headers.add('Access-Control-Allow-Headers', "*")
+            response.headers.add('Access-Control-Allow-Methods', "*")
+            return response
+        else:
+            return not_found()
 
 @app.route('/newsletter', methods=['PUT'])
 def api_update():
